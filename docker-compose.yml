@@ -3,25 +3,37 @@ version: '3.8'
 services:
   web:
         build: ./project
-        command: python manage.py runserver 0.0.0.0:8000
+        command: sh -c "python manage.py migrate && python manage.py createsuperuser --noinput && 
+gunicorn project.wsgi:application --bind 0.0.0.0:8000"
+        environment:
+          - DJANGO_SUPERUSER_USERNAME=admin
+          - DJANGO_SUPERUSER_PASSWORD=1234
+          - DJANGO_SUPERUSER_EMAIL=admin@example.com
         volumes:
-        - ./project/:/usr/src/project/
+          - ./project/:/usr/src/project/
         ports:
-        - 8000:8000
+          - 8000:8000
         env_file:
-        - ./project/.env.dev
+          - ./project/.env.dev
         depends_on:
-        - db
+          - db
   db:
         image: postgres:13.0-alpine
         volumes:
-        - postgres_data:/var/lib/postgresql/data/
+          - postgres_data:/var/lib/postgresql/data/
         environment:
           POSTGRES_USER: ${POSTGRES_USER}
           POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
           POSTGRES_DB: ${POSTGRES_DB}
-
-
+        ports:
+          - 5432:5432 
+   nginx:
+        build: ./nginx
+        container_name: dosc_nginx
+        ports:
+          - 1337:80
+        depends_on:
+          - web
 
 volumes:
-  postgres_data:
+  postgres_data:       
